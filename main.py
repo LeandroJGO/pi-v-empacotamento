@@ -10,11 +10,10 @@ from pathlib import Path
 import customtkinter as ctk
 from tkinter import messagebox, ttk
 from PIL import Image
-
+from dashboard_window import DashboardWindow
 
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
-
 
 class DatabaseManager:
     def __init__(self, db_path="gravacoes.db"):
@@ -236,8 +235,8 @@ class AppCameraIP:
     def __init__(self, root):
         self.root = root
         self.root.title("Sistema de Gravação Inteligente")
-        self.root.geometry("1460x860")
         self.root.minsize(1180, 760)
+        self.root.after(100, lambda: self.root.state("zoomed"))
 
         self.db = DatabaseManager()
         self.camera = CameraStream()
@@ -274,7 +273,7 @@ class AppCameraIP:
 
         self.sidebar = ctk.CTkFrame(self.root, width=330, corner_radius=0)
         self.sidebar.grid(row=0, column=0, sticky="nsew")
-        self.sidebar.grid_rowconfigure(17, weight=1)
+        self.sidebar.grid_rowconfigure(18, weight=1)
         self.sidebar.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -355,6 +354,17 @@ class AppCameraIP:
         )
         self.btn_sincronizar.grid(row=10, column=0, padx=20, pady=(0, 14), sticky="ew")
 
+        self.btn_dashboard = ctk.CTkButton(
+            self.sidebar,
+            text="Abrir dashboard",
+            command=self.abrir_dashboard,
+            height=40,
+            corner_radius=12,
+            fg_color="#2E86C1",
+            hover_color="#1F618D",
+        )
+        self.btn_dashboard.grid(row=11, column=0, padx=20, pady=(0, 14), sticky="ew")
+
 
         self.status_var = ctk.StringVar(value="Status: Desconectado")
         self.label_status = ctk.CTkLabel(
@@ -365,7 +375,7 @@ class AppCameraIP:
             wraplength=280,
             justify="left",
         )
-        self.label_status.grid(row=11, column=0, padx=20, pady=(0, 8), sticky="ew")
+        self.label_status.grid(row=12, column=0, padx=20, pady=(0, 8), sticky="ew")
 
         self.cronometro_var = ctk.StringVar(value="Tempo de gravação: 00:00")
         ctk.CTkLabel(
@@ -374,7 +384,7 @@ class AppCameraIP:
             font=ctk.CTkFont(size=18, weight="bold"),
             wraplength=280,
             justify="left",
-        ).grid(row=12, column=0, padx=20, pady=(0, 8), sticky="ew")
+        ).grid(row=13, column=0, padx=20, pady=(0, 8), sticky="ew")
 
         self.arquivo_var = ctk.StringVar(value="Arquivo atual: nenhum")
         ctk.CTkLabel(
@@ -383,7 +393,7 @@ class AppCameraIP:
             justify="left",
             wraplength=280,
             text_color="#666666",
-        ).grid(row=13, column=0, padx=20, pady=(0, 10), sticky="ew")
+        ).grid(row=14, column=0, padx=20, pady=(0, 10), sticky="ew")
 
         self.selecao_var = ctk.StringVar(value="ID selecionado: nenhum")
         ctk.CTkLabel(
@@ -392,7 +402,7 @@ class AppCameraIP:
             justify="left",
             wraplength=280,
             font=ctk.CTkFont(size=14, weight="bold"),
-        ).grid(row=14, column=0, padx=20, pady=(0, 8), sticky="ew")
+        ).grid(row=15, column=0, padx=20, pady=(0, 8), sticky="ew")
 
         self.btn_excluir = ctk.CTkButton(
             self.sidebar,
@@ -403,16 +413,16 @@ class AppCameraIP:
             fg_color="#7D3C98",
             hover_color="#5B2C6F",
         )
-        self.btn_excluir.grid(row=15, column=0, padx=20, pady=(0, 14), sticky="ew")
+        self.btn_excluir.grid(row=16, column=0, padx=20, pady=(0, 14), sticky="ew")
 
         ctk.CTkLabel(
             self.sidebar,
             text="Indicadores disponíveis",
             font=ctk.CTkFont(size=16, weight="bold"),
-        ).grid(row=14, column=0, padx=20, pady=(6, 8), sticky="w")
+        ).grid(row=17, column=0, padx=20, pady=(6, 8), sticky="w")
 
         self.info_box = ctk.CTkTextbox(self.sidebar, height=170, corner_radius=12)
-        self.info_box.grid(row=17, column=0, padx=20, pady=(0, 20), sticky="nsew")
+        self.info_box.grid(row=18, column=0, padx=20, pady=(0, 20), sticky="nsew")
         self.info_box.insert(
             "1.0",
             "• Total de vídeos gravados\n"
@@ -509,6 +519,20 @@ class AppCameraIP:
         self._criar_info_inferior(self.bottom_frame, "Último arquivo", self.ultimo_video_var, 1)
         self._criar_info_inferior(self.bottom_frame, "Origem da câmera", self.fonte_var, 2)
         self._criar_info_inferior(self.bottom_frame, "Exclusões", self.excluidos_var, 3)
+
+    def abrir_dashboard(self):
+        if hasattr(self, "dashboard_window") and self.dashboard_window.winfo_exists():
+            self.dashboard_window.lift()
+            self.dashboard_window.focus_force()
+            self.dashboard_window.attributes("-topmost", True)
+            self.root.after(300, lambda: self.dashboard_window.attributes("-topmost", False))
+            return
+
+        self.dashboard_window = DashboardWindow(
+            self.root,
+            db_path="gravacoes.db",
+            videos_folder="videos_gravados"
+        ) 
 
     def conectar_serial(self):
         porta = self.porta_com_var.get().strip()
@@ -694,6 +718,8 @@ class AppCameraIP:
         self.btn_iniciar.configure(state="normal")
         self.btn_parar.configure(state="disabled")
         self.entry_observacao.delete(0, "end")
+        self.entry_pedido.delete(0, "end")
+        self.entry_pedido.focus()
 
         self.sincronizar_com_pasta(mostrar_mensagem=False)
 
